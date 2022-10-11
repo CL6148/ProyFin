@@ -18,18 +18,29 @@ id	{letter}+({letter}|{digit})*
 %%
 "var"	{return VAR; }
 "program"	{return PROG; }
-"print"	{return PRINT; }
+"main"	{return MAIN; }
+"func"	{return FUNC; }
+"return"	{return RET; }
+"write"	{return WRITE; }
+"read"	{return READ; }
 
 "int"	{return INT; }
 "float"	{return FLOAT; }
+"void"	{return VOID; }
 "if"	{return IF; }
 "else"	{return ELSE; }
+"do"	{return DO; }
+"while"	{return WHILE; }
+
+"class"	{return CLASS; }
+"public"	{return PUB; }
+"private"	{return PRIV; }
 
 "+"|"-"	{return ADDOP; }
 "*"	{return MULOP; }
 "/"	{return DIVOP; }
-"<>"	{return EQUOP; }
-"<"|">"	{return RELOP; }
+"!="|"=="	{return EQUOP; }
+"<"|"<="|">"|">="	{return RELOP; }
 
 "("	{return LPAREN; }
 ")"	{return RPAREN; }

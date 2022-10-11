@@ -26,9 +26,16 @@ Instrucciones de Ejecución:
 
 *****************************************************************************
 
-v0.0: Esqueleto de Lexer y Parser 'Little Duck'
-	- scanner.l	:	Archivo Lexer
-	- parser.y	: 	Archivo Parser
-	- compile.bat	:	Ejecución y compilación de archivos en consola
-	- TestCorrect	:	Archivo de prueba sin error
-	- TestError	:	Archivo de prueba con error
+v0.1: Incremento a Lexer y Parser 'OOP Basic' [2022-10-10]
+	+ scanner.l	:	Actualización de Tokens a utilizar
+	+ parser.y	:	Nuevas gramáticas actualizadas para el proyecto
+
+	Pendiente:
+	- Resolver problemas de Bison Shift/Reduce y Reduce/Reduce
+	- Gramática de 'variables' tiene conflicto en vars2, posible arreglo con semántica
+	- Semántica general para todas las reglas gramaticales
+
+v0.0: Esqueleto de Lexer y Parser 'Little Duck' [2022-10-03]
+	+ scanner.l	:	Archivo Lexer
+	+ parser.y	: 	Archivo Parser
+	+ compile.bat	:	Ejecución y compilación de archivos en consola
