@@ -68,9 +68,9 @@ ctes	\"[^"]*\"
 "private"	{return PRIV; }
 
 {id}	{
-		insert(yytext, strlen(yytext), UNDEF, lineno);
-		return ID;
-	}
+		insert(yytext, strlen(yytext), UNDEF);
+		return ID; }
+
 {ctei}	{return CTEI; }
 {ctef}	{return CTEF; }
 {ctes}	{return CTES; }

@@ -28,6 +28,20 @@ Instrucciones de Ejecución:
 
 *****************************************************************************
 
+v0.3: Finalización de Parser [2022-11-15]
+	+ parser.y	:	Actualización de Gramática, funciones leídas completamente
+	
+	- symtab.c / .h	:	Rediseño de sistema de tabla de símbolos, actualmente incompleto
+
+	Problemas Identificados:
+	- Tabla de Símbolos lee ID's incorrectamente y en casos les agrega un caracter no reconocido y conflicta con la validación de duplicados.
+
+	Pendiente:
+	- Semántica general
+	- Tabla de Símbolos
+	- Compilación y creación de Cuádruplos
+	- Creación de Código de Máquina
+
 v0.2: Tabla de Símbolos y Optimización Lexer/Parser [2022-11-04]
 	+ scanner.l	:	Actualización de Tokens, tentativo formato base final
 	+ parser.y	:	Actualización de Gramática, tentativo formato base final

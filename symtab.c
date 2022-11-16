@@ -19,10 +19,11 @@ unsigned int hash(char *key) {
 		hashval += *key;
 	}
 	hashval += key[0] % 11 + (key[0] << 3) - key[0];
+	printf("%d ", hashval);
 	return hashval % SIZE;
 }
  
-void insert(char *name, int len, int type, int lineno) {
+void insert(char *name, int len, int type) {
 	unsigned int hashval = hash(name);
 	list_t *l = hash_table[hashval];
 	while ((l != NULL) && (strcmp(name,l->st_name) != 0)) {
@@ -34,21 +35,8 @@ void insert(char *name, int len, int type, int lineno) {
 
 		l->st_type = type;
 		l->scope = cur_scope;
-		l->lines = (RefList*) malloc(sizeof(RefList));
-		l->lines->lineno = lineno;
-		l->lines->next = NULL;
 		l->next = hash_table[hashval];
 		hash_table[hashval] = l; 
-		printf("Inserted %s for the first time with linenumber %d!\n", name, lineno);
-	}
-	else {
-		l->scope = cur_scope;
-		RefList *t = l->lines;
-		while (t->next != NULL) t = t->next;
-		t->next = (RefList*) malloc(sizeof(RefList));
-		t->next->lineno = lineno;
-		t->next->next = NULL;
-		printf("Found %s again at line %d!\n", name, lineno);
 	}
 }
 
@@ -56,15 +44,6 @@ list_t *lookup(char *name) {
 	unsigned int hashval = hash(name);
 	list_t *l = hash_table[hashval];
 	while ((l != NULL) && (strcmp(name,l->st_name) != 0)) {
-		l = l->next;
-	}
-	return l;
-}
-
-list_t *lookup_scope(char *name, int scope) {
-	unsigned int hashval = hash(name);
-	list_t *l = hash_table[hashval];
-	while ((l != NULL) && (strcmp(name,l->st_name) != 0) && (scope != l->scope)) {
 		l = l->next;
 	}
 	return l;
@@ -82,64 +61,25 @@ void incr_scope() {
 
 void symtab_dump(FILE * of) {
 	int i;
-	fprintf(of, "------------ ------ ------------\n");
-	fprintf(of, "Name         Type   Line Numbers\n");
-	fprintf(of, "------------ ------ -------------\n");
-	for (i = 0; i < SIZE; ++i) { 
-		if (hash_table[i] != NULL) { 
+	fprintf(of, "------------ ------\n");
+	fprintf(of, "Name         Type  \n");
+	fprintf(of, "------------ ------\n");
+	for (i = 0; i < SIZE; i++) {
+		if (hash_table[i] != NULL) {
 			list_t *l = hash_table[i];
-			while (l != NULL) { 
-				RefList *t = l->lines;
-				fprintf(of, "%-12s ",l->st_name);
+			while (l != NULL) {
+				fprintf(of, "%-12s ", l->st_name);
 				if (l->st_type == INT_TYPE) {
-					fprintf(of, "%-7s","int");
-				}
-				else if (l->st_type == REAL_TYPE) {
-					fprintf(of, "%-7s","real");
-				}
-				else if (l->st_type == STR_TYPE) {
-					fprintf(of, "%-7s","string");
-				}
-				else if (l->st_type == ARRAY_TYPE) {
-					fprintf(of, "array of ");
-					if (l->inf_type == INT_TYPE) {
-						fprintf(of, "%-7s","int");
-					}
-					else if (l->inf_type  == REAL_TYPE) {
-						fprintf(of, "%-7s","real");
-					}
-					else if (l->inf_type  == STR_TYPE) {
-						fprintf(of, "%-7s","string");
-					}
-					else {
-						fprintf(of, "%-7s","undef");
-					}
-				}
-				else if (l->st_type == FUNCTION_TYPE) {
-					fprintf(of, "%-7s %s","function returns ");
-					if (l->inf_type == INT_TYPE) {
-						fprintf(of, "%-7s","int");
-					}
-					else if (l->inf_type  == REAL_TYPE) {
-						fprintf(of, "%-7s","real");
-					}
-					else if (l->inf_type  == STR_TYPE) {
-						fprintf(of, "%-7s","string");
-					}
-					else {
-						fprintf(of, "%-7s","undef");
-					}
+					fprintf(of, "%-7s", "int");
 				}
 				else {
-					fprintf(of, "%-7s","undef");
+					fprintf(of, "%-7s", "undef");
 				}
-				while (t != NULL) {
-					fprintf(of, "%4d ",t->lineno);
-					t = t->next;
-				}
+				
 				fprintf(of, "\n");
 				l = l->next;
 			}
 		}
 	}
+
 }
