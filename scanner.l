@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "varTypes.h"
 #include "symtab.h"
 #include "parser.tab.h"
 
@@ -15,15 +16,14 @@ int lineno = 1;
 
 letter	[A-Za-z]
 digit	[0-9]
+print	[ -~]
 
 id	{letter}+({letter}|{digit})*
 ctei	[0-9]{digit}*
 ctef	{digit}*"."{digit}+
-ctes	\"[^"]*\"
 
 %%
 
-"char"	{return CHAR; }
 "int"	{return INT; }
 "float"	{return FLOAT; }
 "void"	{return VOID; }
@@ -32,6 +32,8 @@ ctes	\"[^"]*\"
 "else"	{return ELSE; }
 "do"	{return DO; }
 "while"	{return WHILE; }
+"read"	{return READ; }
+"write"	{return WRITE; }
 
 "+"|"-"	{return ADDOP; }
 "*"	{return MULOP; }
@@ -59,8 +61,6 @@ ctes	\"[^"]*\"
 "program"	{return PROG; }
 "main"	{return MAIN; }
 "func"	{return FUNC; }
-"continue"	{return CONT; }
-"break"	{return BREAK; }
 "return"	{return RET; }
 
 "class"	{return CLASS; }
@@ -68,12 +68,16 @@ ctes	\"[^"]*\"
 "private"	{return PRIV; }
 
 {id}	{
-		insert(yytext, strlen(yytext), UNDEF);
+		insert(yytext, UNDEF);
+		yylval.id = (char*) strdup(yytext);
+		yylval.symtab_item = lookup(yytext);
 		return ID; }
-
-{ctei}	{return CTEI; }
-{ctef}	{return CTEF; }
-{ctes}	{return CTES; }
+{ctei}	{
+		yylval.val.ival = atoi(yytext);
+		return CTEI; }
+{ctef}	{
+		yylval.val.fval = atof(yytext);
+		return CTEF; }
 
 "\n"	{lineno += 1; }
 [ \t\r\f]+	/* empty */

@@ -28,10 +28,27 @@ Instrucciones de Ejecución:
 
 *****************************************************************************
 
+v0.4: Máquina Virtual Sencilla y Generador de Código Base [2022-11-19]
+	+ parser.y	:	Inicios de Semántica, definición de 'labels' con funcionalidad de saltos pendientes (IF/ELSE DO/WHILE)
+	+ scanner.l	: 	Inicios de Semántica, definición de tipos de regreso para variables
+	+ symtab.c|.h	:	Integración de 'offset' para máquina virtual
+	+ varTypes.c|.h	:	Archivo con lógica de revisión semántica de tipos de retorno
+	+ virtualMachine.h:	Archivo con pila de ejecución de código
+	+ codeGenerator	:	Archivo con asignación de offset a elementos y resolución de saltos pendientes
+
+	Resuleto:
+	° La tabla de símbolos ya no regresa caracteres no reconocidos, completamente funcional
+	
+	Pendiente:
+	- Completar semántica e implementar sobre reglas de gramática
+	- Posible rediseño de Tabla de Símbolos según implementación semántica
+	- Definir todas las reglas de la Máquina Virtual para todos los elementos del compilador
+	- Crear código real en Generador de Código para ejecución final del compilador
+
 v0.3: Finalización de Parser [2022-11-15]
 	+ parser.y	:	Actualización de Gramática, funciones leídas completamente
 	
-	- symtab.c / .h	:	Rediseño de sistema de tabla de símbolos, actualmente incompleto
+	- symtab.c|.h	:	Rediseño de sistema de tabla de símbolos, actualmente incompleto
 
 	Problemas Identificados:
 	- Tabla de Símbolos lee ID's incorrectamente y en casos les agrega un caracter no reconocido y conflicta con la validación de duplicados.
