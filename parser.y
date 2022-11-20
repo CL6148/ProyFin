@@ -2,13 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "varTypes.c"
-#include "symtab.c"
+#include "symtab.h"
+#include "virtualMachine.h"
 
 extern FILE *yyin;
 extern FILE *yyout;
-extern int lineno;
 extern int yylex();
+
+void yyerror();
 
 struct label {
 	int for_goto;
@@ -17,65 +18,81 @@ struct label {
 struct label *newlabel() {
 	return (struct label *) malloc(sizeof(struct label));
 };
+void install(char *name) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		putsym(name, 1);
+		printf("\n putsym successful");
+	}
+	else {
+		printf("ERR: %s is already defined\n", name);
+	}
 
-void yyerror();
+	list_t *temp = getsym(name);
+	printf("\n %d", temp->st_id);
+	printf("\n OFFSET:%d\n\n", temp->offset);
+}
+void context_check(enum code_ops operation, char *name) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		printf("ERR: %s is not defined\n", name);
+	}
+	else {
+		gen_code(operation, l->offset);
+	}
+}
+
 %}
 
 %union semrec{
-	char *id;
-
 	int ival;
-	float fval;
-
-	int data_type;
-	int const_type;
-
+	char *id;
 	struct label *lbl;
-
-	list_t *symtab_item;
-	Value val;
 }
 
 %start	program
+%token <ival>	CTEI
+%token <id>		ID
+%token <lbl>	IF WHILE ELSE
+
 %token	INT FLOAT VOID
-%token<lbl>	IF DO WHILE
-%token	ELSE READ WRITE
-%token	ADDOP MULOP DIVOP INCR NOTOP ANDOP OROP EQUOP RELOP
+%token	DO SKIP READ WRITE
+%token	NOTOP ANDOP OROP EQUOP LESSTH GREATH LESST_E GREATH_E
 %token	LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE COLON SEMI DOT COMMA ASSIGN
 %token	VAR PROG MAIN FUNC RET
 %token	CLASS PUB PRIV
-%token <id>	ID
-%token <val.ival>	CTEI
-%token <val.fval>	CTEF
+%token	CTEF
 
-%type <data_type> type
+%left	ADDOP SUBOP
+%left	MULOP DIVOP
 
 %%
 
-program: PROG ID SEMI variables functions MAIN block;
+program: PROG ID SEMI { printf(" >----- Successful read of header\n"); }
+	variables { printf(" >----- Successful read of variables block\n"); }
+	functions MAIN { printf(" >----- Successful entry into MAIN block\n\t"); }
+	block { printf("\n >----- Successful exit of MAIN block\n"); };
 
 variables: VAR vars;
-vars: vars vars1 | /* empty */;
-vars1: { declare = 1; } type vars2 { declare = 0; } SEMI;
-vars2: vars3 | vars2 COMMA vars3;
-vars3: ID | ID arr;
-arr: arr LBRACK CTEI RBRACK | LBRACK CTEI RBRACK;
+vars: vars type vars1 ID SEMI { printf(" %s", $4);
+								install($4); }
+	| /* empty */;
+vars1: vars1 ID COMMA { printf(" %s", $2);
+						install ($2); }
+	| /* empty */;
 
 functions: FUNC func;
 func: func func1 | /* empty */;
-func1: { incr_scope(); } funcHead funcTail { hide_scope(); };
-funcHead: { declare = 1; } type ID LPAREN { declare = 0; } parameter RPAREN;
+func1: funcHead funcTail;
+funcHead: type ID LPAREN parameter RPAREN;
 funcTail: LBRACE variables funcStmt RBRACE;
 funcStmt: funcStmt statement | /* empty */;
 
 parameter: par | /* empty */;
 par: par1 | par COMMA par1;
-par1: { declare = 1; } type ID { declare = 0; };
+par1: type ID;
 
-type: INT { $$ = INT_TYPE; }
-	| FLOAT { $$ = REAL_TYPE; }
-	| VOID { $$ = VOID_TYPE; }
-;
+type: INT | FLOAT | VOID;
 
 block: LBRACE block1 RBRACE;
 block1: block1 statement | /* empty */;
@@ -86,60 +103,75 @@ statement: assignment
 	| readStmt
 	| writeStmt
 	| callFunc
-	| RET expression SEMI;
+	| SKIP SEMI;
 
-assignment: ID ASSIGN expression SEMI;
+assignment: ID ASSIGN expression SEMI { context_check(STORE, $1); };
 
-condition:IF LPAREN expression RPAREN block cond1 SEMI;
-cond1: ELSE block | /* empty */;
+condition:IF LPAREN expression RPAREN { $1 = (struct label *) newlabel();
+										$1->for_jmp_false = reserve_loc(); }
+	block { $1->for_goto = reserve_loc(); }
+	ELSE { back_patch($1->for_jmp_false, JMP_FALSE, gen_label()); }
+	block SEMI { back_patch($1->for_goto, GOTO, gen_label()); };
 
-cycle: cycle1 | cycle2;
-cycle1: DO block WHILE LPAREN expression RPAREN SEMI;
-cycle2: WHILE LPAREN expression RPAREN DO block SEMI;
+cycle: WHILE { $1 = (struct label *) newlabel();
+			   $1->for_goto = gen_label(); }
+	LPAREN expression RPAREN { $1->for_jmp_false = reserve_loc(); }
+	DO block SEMI { gen_code(GOTO, $1->for_goto);
+					back_patch(JMP_FALSE, $1->for_jmp_false, gen_label()); };
 
-readStmt: READ ID;
+readStmt: READ ID { context_check(READ_INT, $2); } SEMI;
 
-writeStmt: WRITE ID;
+writeStmt: WRITE expression { gen_code(WRITE_INT, 0); } SEMI;
 
 callFunc: ID LPAREN callParam RPAREN;
 callParam: callPm1 | /* empty */;
 callPm1: callPm1 COMMA varcte | varcte;
 
 expression: exp expr1;
-expr1: expr2 exp | /* empty */
-expr2: RELOP | EQUOP;
+expr1: GREATH exp { gen_code(GT, 0); }
+	| LESSTH exp { gen_code(LT, 0); }
+	| EQUOP exp { gen_code(EQ, 0); }
+	| /* empty */;
 
 exp: term exp1;
-exp1: exp2 exp | /* empty */;
-exp2: ADDOP;
+exp1: ADDOP term { gen_code(ADD, 0); }
+	| SUBOP term { gen_code(SUB, 0); }
+	| /* empty */;
 
 term: factor term1;
-term1: term2 term | /* empty */;
-term2: MULOP | DIVOP;
+term1: MULOP factor { gen_code(MULT, 0); }
+	| DIVOP factor { gen_code(DIV, 0); }
+	| /* empty */;
 
-factor: LPAREN expression RPAREN | fact1 varcte;
-fact1: ADDOP | /* empty */;
+factor: LPAREN exp RPAREN
+	| varcte;
 
-varcte: ID | CTEI | CTEF | callFunc;
+varcte: CTEI { gen_code(LD_INT, $1); }
+	| SUBOP CTEI { gen_code(LD_INT, $2 * -1); }
+	| ID { context_check(LD_VAR, $1); }
 
 %%
 
 void yyerror(){
-	fprintf(stderr, "Syntax error at line %d\n", lineno);
+	fprintf(stderr, "Syntax error\n");
 	exit(1);
 }
 
 int main (int argc, char *argv[]){
-	init_hash_table();
-
 	int flag;
 	yyin = fopen(argv[1], "r");
+
+	printf("DEBUG:\tBeginning of PARSE\n");
+
 	flag = yyparse();
 	fclose(yyin);
+	
+	printf("DEBUG:\tSuccessful parse of file\n");
+	printf("END: Compiled without error\n");
 
-	yyout = fopen("symtab_dump.out", "w");
-	symtab_dump(yyout);
-	fclose(yyout);
+	printf("\n");
+	print_code();
+	fetch_execute_cycle();
 
 	return flag;
 }

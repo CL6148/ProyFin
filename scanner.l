@@ -1,25 +1,15 @@
 %option noyywrap
 
 %{
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "varTypes.h"
-#include "symtab.h"
 #include "parser.tab.h"
-
-extern FILE *yyin;
-extern FILE *yyout;
-
-int lineno = 1;
 %}
 
-letter	[A-Za-z]
 digit	[0-9]
-print	[ -~]
+id	[a-z][a-z0-9]*
 
-id	{letter}+({letter}|{digit})*
-ctei	[0-9]{digit}*
+ctei	{digit}+
 ctef	{digit}*"."{digit}+
 
 %%
@@ -30,20 +20,24 @@ ctef	{digit}*"."{digit}+
 
 "if"	{return IF; }
 "else"	{return ELSE; }
+"skip"	{return SKIP; }
 "do"	{return DO; }
 "while"	{return WHILE; }
 "read"	{return READ; }
 "write"	{return WRITE; }
 
-"+"|"-"	{return ADDOP; }
+"+"	{return ADDOP; }
+"-"	{return SUBOP; }
 "*"	{return MULOP; }
 "/"	{return DIVOP; }
-"++"|"--"	{return INCR; }
-"!"	{return NOTOP; }
 "&&"	{return ANDOP; }
 "||"	{return OROP; }
-"!="|"=="	{return EQUOP; }
-"<"|"<="|">"|">="	{return RELOP; }
+"!="	{return NOTOP; }
+"=="	{return EQUOP; }
+"<"	{return LESSTH; }
+"<="	{return LESST_E; }
+">"	{return GREATH; }
+">="	{return GREATH_E; }
 
 "("	{return LPAREN; }
 ")"	{return RPAREN; }
@@ -68,18 +62,14 @@ ctef	{digit}*"."{digit}+
 "private"	{return PRIV; }
 
 {id}	{
-		insert(yytext, UNDEF);
 		yylval.id = (char*) strdup(yytext);
-		yylval.symtab_item = lookup(yytext);
 		return ID; }
 {ctei}	{
-		yylval.val.ival = atoi(yytext);
+		yylval.ival = atoi(yytext);
 		return CTEI; }
-{ctef}	{
-		yylval.val.fval = atof(yytext);
-		return CTEF; }
+{ctef}	{ return CTEF; }
 
-"\n"	{lineno += 1; }
-[ \t\r\f]+	/* empty */
+
+[ \n\t\r\f]+	/* empty */
 
 %%

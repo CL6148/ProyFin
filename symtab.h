@@ -1,58 +1,86 @@
-#include "varTypes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "virtualMachine.h"
 
 #define SIZE 211
 #define MAXTOKENLEN 40
 
-typedef union Value {
-	int ival;
-	float fval;
-	char cval;
-	char *sval;
-}Value;
+int iCounter = 0;
 
-typedef struct Param {
-	int param_type;
-	char param_name[MAXTOKENLEN];
+int data_offset = 0;
+int data_location() {
+    return data_offset++;
+}
 
-	Value val;
-}Param;
+int code_offset = 0;
+int reserve_loc() {
+    return code_offset++;
+}
+int gen_label() {
+    return code_offset;
+}
+
+void gen_code(enum code_ops operation, int arg) {
+    code[code_offset].op = operation;
+    code[code_offset++].arg = arg;
+
+	printf("|%d %d", operation, arg);
+}
+void back_patch(int addr, enum code_ops operation, int arg) {
+    code[addr].op = operation;
+    code[addr].arg = arg;
+}
+
 
 typedef struct list_t{
 	int st_id;
 	char st_name[MAXTOKENLEN];
 	int st_type;
-	int scope;
-
-	Value val;
-
-	int inf_type;
-
-	Value *vals;
-	int array_size;
-
-	Param *parameters;
-	int num_params;
-
 	int offset;
 
 	struct list_t *next;
 }list_t;
 
-static list_t **hash_table;
+list_t *symtab = (list_t *)0;
 
-void init_hash_table();
-unsigned int hash(char *key);
-void insert(char *name, int type);
-list_t *lookup(char *name);
+list_t *putsym(char *name, int type) {
+	int id = 5000 + iCounter;
+	list_t *l = (list_t *) malloc(sizeof(list_t));
+	l->st_id = id;
+	strcpy(l->st_name,name);
+	l->st_type = type;
+	l->offset = data_location();
 
-void set_type(char *name, int st_type, int inf_type);
-int get_type(char *name);
+	l->next = (struct list_t *) symtab;
+	symtab = l;
+	iCounter++;
+	return l;
+}
 
-void hide_scope();
-void incr_scope();
+list_t *getsym(char *name) {
+	list_t *l;
+	for (l = symtab; l != (list_t *)0; l = (list_t *)l->next) {
+		if (strcmp(l->st_name,name) == 0) {
+			return l;
+		}
+	}
+	return 0;
+}
 
-void symtab_dump(FILE *of);
+list_t *lookupID(int id) {
+	list_t *l;
+	for (l = symtab; l != (list_t *)0; l = (list_t *)l->next) {
+		if (id == l->st_id) {
+			return l;
+		}
+	}
+	return 0;
+}
 
-Param def_param(int param_type, char *param_name);
-int func_declare(char *name, int ret_type, int num_params, Param *parameters);
-int func_param_check(char *name, int num_params, Param *parameters);
+void print_code() {
+	int i = 0;
+	while (i < code_offset) {
+		printf("%3ld: %-10s%4ld\n", i, op_name[(int) code[i].op], code[i].arg);
+		i++;
+	}
+}

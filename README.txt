@@ -28,6 +28,32 @@ Instrucciones de Ejecución:
 
 *****************************************************************************
 
+v0.5: Máquina Virtual Desarrollada y Generador de Código Maduro [2022-11-19]
+	+ parser.y	:	Madurez de Semántica para estatutos y expresiones comunes, integración de archivo parser.y como hub principal de ejecución
+	+ symtab.h	:	Merge enter symtab.h y codeGenerator.h para la generación de código e inserción de variables a table de símbolos en un solo archivo
+				Rediseño de funciones de inserción y búsqueda de variables en la lista anidada y cambio de nombre para simplificar significado (insert->putsym | lookup->getsym)
+				Eliminación de archivo symtab.c para ejecutar funciones directamente desde archivo parser.y
+	+ virtualMachine.h:	Introducción de pila de variables separada a la pila de ejecución para aislar la asignación y manipulación de valores
+				Limpieza y redefinición de algunos estatutos de ejecución de código para tener resultados consistentes
+				Impresión a consola al llamar cada estatuto de ejecución para fines de debug [TEMP]
+	- varTypes.c|.h	:	Eliminación de archivos reduntantes / sin utilizar
+
+	Resulelto:
+	° Semántica básica sobre gramática fundamental para la ejecución del compilador y código generado
+	° Rediseño de Tabla de Símbolos y sus funciones
+	° Implementación de reglas fundamentales de Máquina Virtual
+	° Creación y ejecución de código generado fundamental
+
+	Notas:
+	¬ Para facilitar la implementación y comprobar el funcionamiento de los elementos agregados, el parser/lexer fue reducido a solo la ejecución del bloque MAIN y sus estatutos utilizando solo variables de tipo INT.
+	¬ Esto fue para reducir el ruido y complejidad de las pruebas de integración, ahora con la implementación completa de Máquina Virtual y Generación de Código con el compilador reducido se deben introducir estos elementos eliminados.
+
+	Pendiente:
+	- Implementación y verificación de diferentes tipos de datos
+	- Completar expresiones relacionales y booleanas (>= , <= , AND , OR , NOT) con reglas de Máquina Virtual y Generación de Código
+	- Implementación de Funciones Parametrizables y ejecución correcta de variables en alcances (scopes) diferentes
+	- Implementación de Clases y Objetos en el código
+
 v0.4: Máquina Virtual Sencilla y Generador de Código Base [2022-11-19]
 	+ parser.y	:	Inicios de Semántica, definición de 'labels' con funcionalidad de saltos pendientes (IF/ELSE DO/WHILE)
 	+ scanner.l	: 	Inicios de Semántica, definición de tipos de regreso para variables
