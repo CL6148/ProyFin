@@ -6,16 +6,18 @@
 
 enum code_ops {
     HALT, STORE, JMP_FALSE, GOTO,
-    DATA, LD_INT, LD_VAR,
-    READ_INT, WRITE_INT,
-    LT, EQ, GT, ADD, SUB, MULT, DIV
+    LD_INT, LD_VAR, READ_INT, WRITE_INT,
+    AND, OR, EQ, NOT,
+    LT, LTE, GT, GTE,
+    ADD, SUB, MULT, DIV
 };
 
 char *op_name[] = {
     "halt", "store", "jmp_false", "goto",
-    "data", "ld_int", "ld_var",
-    "read_int", "write_int",
-    "lt", "eq", "gt", "add", "sub", "mult", "div"
+    "ld_int", "ld_var", "read_int", "write_int",
+    "and", "or", "eq", "not",
+    "lt", "lte", "gt", "gte",
+    "add", "sub", "mult", "div"
 };
 
 struct instruction {
@@ -25,14 +27,16 @@ struct instruction {
 
 struct instruction code[999];
 int stack[999];
-int variableArray[999];
+int varArr[999];
+
+
+int tempArr[999];
 
 int pc = 0;
 struct instruction ir;
 int top = 0;
 
 void fetch_execute_cycle() {
-    int temp = 0;
     printf("\n");
     do {
         ir = code[pc++];
@@ -42,15 +46,15 @@ void fetch_execute_cycle() {
             break;
         case READ_INT:
             printf("Input: ");
-            scanf("%d", &variableArray[ir.arg]);
-            // printf("  in %d\n", ir.arg);
+            scanf("%d", &varArr[ir.arg]);
+            // printf("  in offset %d\n", ir.arg);
             break;
         case WRITE_INT:
             printf("Output: %d\n", stack[top--]);
             break;
         case STORE:
-            variableArray[ir.arg] = stack[top--];
-            // printf("STORE - %d\n", variableArray[ir.arg]);
+            varArr[ir.arg] = stack[top--];
+            // printf("STORE - %d\t%d\n", varArr[ir.arg], ir.arg);
             break;
         case JMP_FALSE:
             if (stack[top--] == 0) {
@@ -65,17 +69,29 @@ void fetch_execute_cycle() {
             pc = ir.arg;
             // printf("GOTO - PC:%3d\n", pc);
             break;
-        case DATA:
-            top = top + ir.arg;
-            // printf("DATA - TOP:%3d\n", top);
-            break;
         case LD_INT:
             stack[++top] = ir.arg;
             // printf("LD_INT - %d in %d\n", ir.arg, top-1);
             break;
         case LD_VAR:
-            stack[++top] = variableArray[ir.arg];
-            // printf("LD_VAR - %d in %d\n", variableArray[ir.arg], stack[top-1]);
+            stack[++top] = varArr[ir.arg];
+            // printf("LD_VAR - %d in %d\n", varArr[ir.arg], stack[top-1]);
+            break;
+        case AND:
+            if (stack[top-1] && stack[top]) {
+                stack[--top] = 1;
+            }
+            else {
+                stack[--top] = 0;
+            }
+            break;
+        case OR:
+            if (stack[top-1] || stack[top]) {
+                stack[--top] = 1;
+            }
+            else {
+                stack[--top] = 0;
+            }
             break;
         case LT:
             if (stack[top-1] < stack[top]) {
@@ -86,6 +102,16 @@ void fetch_execute_cycle() {
             }
             // printf("LT - %d\n", stack[top]);
             break;
+        case LTE:
+            // printf("LTE - %d <= %d : ", stack[top-1], stack[top]);
+            if (stack[top-1] <= stack[top]) {
+                stack[--top] = 1;
+            }
+            else {
+                stack[--top] = 0;
+            }
+            // printf("%d\n", stack[top]);
+            break;
         case GT:
             if(stack[top-1] > stack[top]) {
                 stack[--top] = 1;
@@ -95,6 +121,16 @@ void fetch_execute_cycle() {
             }
             // printf("GT - %d\n", stack[top]);
             break;
+        case GTE:
+            // printf("GTE - %d >= %d : ", stack[top-1], stack[top]);
+            if (stack[top-1] >= stack[top]) {
+                stack[--top] = 1;
+            }
+            else {
+                stack[--top] = 0;
+            }
+            // printf("%d\n", stack[top]);
+            break;
         case EQ:
             if (stack[top-1] == stack[top]) {
                 stack[--top] = 1;
@@ -103,6 +139,14 @@ void fetch_execute_cycle() {
                 stack[--top] = 0;
             }
             // printf("GT - %d\n", stack[top]);
+            break;
+        case NOT:
+            if (stack[top-1] != stack[top]) {
+                stack[--top] = 1;
+            }
+            else {
+                stack[--top] = 0;
+            }
             break;
         case ADD:
             // printf("ADD - %d + %d = ", stack[top-1], stack[top]);

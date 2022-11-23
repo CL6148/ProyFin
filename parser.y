@@ -11,6 +11,8 @@ extern int yylex();
 
 void yyerror();
 
+int dataType = -1;
+
 struct label {
 	int for_goto;
 	int for_jmp_false;
@@ -21,24 +23,96 @@ struct label *newlabel() {
 void install(char *name) {
 	list_t *l = getsym(name);
 	if (l == 0) {
-		putsym(name, 1);
-		printf("\n putsym successful");
+		putsym(name, dataType, 1, 1);
 	}
 	else {
-		printf("ERR: %s is already defined\n", name);
+		fprintf(stderr, "ERR: %s is already defined\n", name);
+		exit(1);
 	}
 
 	list_t *temp = getsym(name);
-	printf("\n %d", temp->st_id);
-	printf("\n OFFSET:%d\n\n", temp->offset);
+	printf(" %2d:%d:%d\n", temp->offset, temp->st_id, temp->st_type);
 }
+void install_arr(char *name, int dim1) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		if (dim1 < 1) {
+			fprintf(stderr, "ERR: Must initialize array with 1 or more slots\n");
+			exit(1);
+		}
+		else {
+			putsym(name, 2, 1, dim1);
+			incr_offset(dim1-1);
+		}
+	}
+	else {
+		fprintf(stderr, "ERR: %s is already defined\n", name);
+		exit(1);
+	}
+	
+	list_t *temp = getsym(name);
+	printf(" %2d:%d:%d\n", temp->offset, temp->st_id, temp->st_type);
+}
+void install_mat(char *name, int dim1, int dim2) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		if (dim1 < 1 || dim2 < 1) {
+			fprintf(stderr, "ERR: Must initialize matrix with 1 or more slots for each dimension\n");
+		}
+		else {
+			putsym(name, 3, dim1, dim2);
+			incr_offset((dim1*dim2)-1);
+		}
+	}
+	else {
+		fprintf(stderr, "ERR, %s is already defined\n", name);
+		exit(1);
+	}
+
+	list_t *temp = getsym(name);
+	printf(" %2d:%d:%d\n", temp->offset, temp->st_id, temp->st_type);
+}
+
 void context_check(enum code_ops operation, char *name) {
 	list_t *l = getsym(name);
 	if (l == 0) {
-		printf("ERR: %s is not defined\n", name);
+		fprintf(stderr, "ERR: %s is not defined\n", name);
 	}
 	else {
 		gen_code(operation, l->offset);
+	}
+}
+void context_arr(enum code_ops operation, char *name, int dim1) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		fprintf(stderr, "ERR: %s not found\n", name);
+		exit(1);
+	}
+	else {
+		if (dim1 < l->dim2) {
+			int temp = l->offset + dim1;
+			gen_code(operation, temp);
+		}
+		else {
+			fprintf(stderr, "ERR: Out of Bounds\n");
+			exit(1);
+		}
+	}
+}
+void context_mat(enum code_ops operation, char *name, int dim1, int dim2) {
+	list_t *l = getsym(name);
+	if (l == 0) {
+		fprintf(stderr, "ERR: %s not found\n", name);
+	}
+	else {
+		if (dim1 < l->dim1 && dim2 < l->dim2) {
+			int aux = l->offset + (l->dim2 * dim1) + dim2;
+			gen_code(operation, aux);
+		}
+		else {
+			fprintf(stderr, "ERR: Out of Bounds\n");
+			exit(1);
+		}
 	}
 }
 
@@ -46,22 +120,23 @@ void context_check(enum code_ops operation, char *name) {
 
 %union semrec{
 	int ival;
+	float fval;
 	char *id;
 	struct label *lbl;
 }
 
 %start	program
 %token <ival>	CTEI
+%token <fval>	CTEF
 %token <id>		ID
 %token <lbl>	IF WHILE ELSE
 
 %token	INT FLOAT VOID
 %token	DO SKIP READ WRITE
-%token	NOTOP ANDOP OROP EQUOP LESSTH GREATH LESST_E GREATH_E
+%token	NOTOP ANDOP OROP EQUOP LESSTH GREATH LESSTH_E GREATH_E
 %token	LPAREN RPAREN LBRACK RBRACK LBRACE RBRACE COLON SEMI DOT COMMA ASSIGN
 %token	VAR PROG MAIN FUNC RET
 %token	CLASS PUB PRIV
-%token	CTEF
 
 %left	ADDOP SUBOP
 %left	MULOP DIVOP
@@ -70,16 +145,15 @@ void context_check(enum code_ops operation, char *name) {
 
 program: PROG ID SEMI { printf(" >----- Successful read of header\n"); }
 	variables { printf(" >----- Successful read of variables block\n"); }
-	functions MAIN { printf(" >----- Successful entry into MAIN block\n\t"); }
-	block { printf("\n >----- Successful exit of MAIN block\n"); };
+	functions MAIN { printf(" >----- Successful entry into MAIN block\n"); }
+	block { printf(" >----- Successful exit of MAIN block\n"); };
 
 variables: VAR vars;
-vars: vars type vars1 ID SEMI { printf(" %s", $4);
-								install($4); }
-	| /* empty */;
-vars1: vars1 ID COMMA { printf(" %s", $2);
-						install ($2); }
-	| /* empty */;
+vars: vars type vars1 vars2 SEMI | /* empty */;
+vars1: vars1 vars2 COMMA | /* empty */;
+vars2: ID { install($1); }
+	| ID LBRACK CTEI RBRACK { install_arr($1, $3); }
+	| ID LBRACK CTEI RBRACK LBRACK CTEI RBRACK { install_mat($1, $3, $6); };
 
 functions: FUNC func;
 func: func func1 | /* empty */;
@@ -92,7 +166,9 @@ parameter: par | /* empty */;
 par: par1 | par COMMA par1;
 par1: type ID;
 
-type: INT | FLOAT | VOID;
+type: INT { dataType = 0; }
+	| FLOAT { dataType = 1; }
+	| VOID;
 
 block: LBRACE block1 RBRACE;
 block1: block1 statement | /* empty */;
@@ -105,7 +181,9 @@ statement: assignment
 	| callFunc
 	| SKIP SEMI;
 
-assignment: ID ASSIGN expression SEMI { context_check(STORE, $1); };
+assignment: ID ASSIGN expression SEMI { context_check(STORE, $1); }
+	| ID LBRACK CTEI RBRACK ASSIGN expression SEMI { context_arr(STORE, $1, $3); }
+	| ID LBRACK CTEI RBRACK LBRACK CTEI RBRACK ASSIGN expression SEMI { context_mat(STORE, $1, $3, $6); };
 
 condition:IF LPAREN expression RPAREN { $1 = (struct label *) newlabel();
 										$1->for_jmp_false = reserve_loc(); }
@@ -117,9 +195,12 @@ cycle: WHILE { $1 = (struct label *) newlabel();
 			   $1->for_goto = gen_label(); }
 	LPAREN expression RPAREN { $1->for_jmp_false = reserve_loc(); }
 	DO block SEMI { gen_code(GOTO, $1->for_goto);
-					back_patch(JMP_FALSE, $1->for_jmp_false, gen_label()); };
+					back_patch($1->for_jmp_false, JMP_FALSE, gen_label()); };
 
-readStmt: READ ID { context_check(READ_INT, $2); } SEMI;
+readStmt: READ read1 SEMI;
+read1: ID { context_check(READ_INT, $1); }
+	| ID LBRACK read2 RBRACK { context_arr(READ_INT, $1, $3); }
+	| ID LBRACK CTEI RBRACK LBRACK CTEI RBRACK { context_mat(READ_INT, $1, $3, $6); };
 
 writeStmt: WRITE expression { gen_code(WRITE_INT, 0); } SEMI;
 
@@ -127,10 +208,18 @@ callFunc: ID LPAREN callParam RPAREN;
 callParam: callPm1 | /* empty */;
 callPm1: callPm1 COMMA varcte | varcte;
 
-expression: exp expr1;
-expr1: GREATH exp { gen_code(GT, 0); }
+expression: rel expr1;
+expr1: ANDOP rel { gen_code(AND, 0); }
+	| OROP rel { gen_code(OR, 0); }
+	| /* empty */;
+
+rel: exp rel1;
+rel1: GREATH exp { gen_code(GT, 0); }
+	| GREATH_E exp { gen_code(GTE, 0); }
 	| LESSTH exp { gen_code(LT, 0); }
+	| LESSTH_E exp { gen_code(LTE, 0); }
 	| EQUOP exp { gen_code(EQ, 0); }
+	| NOTOP exp { gen_code(NOT, 0); }
 	| /* empty */;
 
 exp: term exp1;
@@ -148,7 +237,11 @@ factor: LPAREN exp RPAREN
 
 varcte: CTEI { gen_code(LD_INT, $1); }
 	| SUBOP CTEI { gen_code(LD_INT, $2 * -1); }
+	| CTEF { gen_code(LD_INT, $1); }
+	| SUBOP CTEF { gen_code(LD_INT, $2 * -1); }
 	| ID { context_check(LD_VAR, $1); }
+	| ID LBRACK CTEI RBRACK { context_arr(LD_VAR, $1, $3); }
+	| ID LBRACK CTEI RBRACK LBRACK CTEI RBRACK { context_mat(LD_VAR, $1, $3, $6); };
 
 %%
 
@@ -170,6 +263,7 @@ int main (int argc, char *argv[]){
 	printf("END: Compiled without error\n");
 
 	printf("\n");
+
 	print_code();
 	fetch_execute_cycle();
 

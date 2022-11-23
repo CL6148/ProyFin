@@ -28,6 +28,18 @@ Instrucciones de Ejecución:
 
 *****************************************************************************
 
+v0.6: Manipulación de Arreglos y Matrices + Expresiones Bool y Relacionales [2022-11-22]
+	+ parser.y	:	Habilidad de declarar y manipular arreglos y matrices
+				Expresiones relacionales y booleanas completas
+	+ symtab.h	:	Reconocimiento de dimensiones para arreglos y matrices
+	+ virtualMachine.h:	Verificación de expresiones y asignación utilizando espacios dentro de arreglos y matrices
+				Expresiones relacionales y booleanas completas
+
+	Pendiente:
+	- Funciones y cambio de alcance (scope) no implementado
+	- Reconocimiento de tipo de dato no implementao (solo maneja variables enteras)
+	- Clases y Objetos no implementados
+
 v0.5: Máquina Virtual Desarrollada y Generador de Código Maduro [2022-11-19]
 	+ parser.y	:	Madurez de Semántica para estatutos y expresiones comunes, integración de archivo parser.y como hub principal de ejecución
 	+ symtab.h	:	Merge enter symtab.h y codeGenerator.h para la generación de código e inserción de variables a table de símbolos en un solo archivo

@@ -1,15 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "virtualMachine.h"
 
 #define SIZE 211
 #define MAXTOKENLEN 40
 
 int iCounter = 0;
+int fCounter = 0;
+int arrCounter = 0;
+int matCounter = 0;
+
+int curr_scope = 0;
 
 int data_offset = 0;
 int data_location() {
     return data_offset++;
+}
+void incr_offset(int count) {
+	data_offset = data_offset + count;
 }
 
 int code_offset = 0;
@@ -23,8 +32,6 @@ int gen_label() {
 void gen_code(enum code_ops operation, int arg) {
     code[code_offset].op = operation;
     code[code_offset++].arg = arg;
-
-	printf("|%d %d", operation, arg);
 }
 void back_patch(int addr, enum code_ops operation, int arg) {
     code[addr].op = operation;
@@ -37,23 +44,48 @@ typedef struct list_t{
 	char st_name[MAXTOKENLEN];
 	int st_type;
 	int offset;
+	int size;
+	int dim1;
+	int dim2;
 
 	struct list_t *next;
 }list_t;
 
 list_t *symtab = (list_t *)0;
 
-list_t *putsym(char *name, int type) {
-	int id = 5000 + iCounter;
+list_t *putsym(char *name, int type, int dim1, int dim2) {
+	int id;
+	if (type == 0) {
+		id = 1000 + iCounter;
+		iCounter++;
+	}
+	else if (type == 1) {
+		id = 2000 + fCounter;
+		fCounter++;
+	}
+	else if (type == 2) {
+		id = 3000 + arrCounter;
+		arrCounter++;
+	}
+	else if (type == 3) {
+		id = 4000 + matCounter;
+		matCounter++;
+	}
+	else {
+		fprintf(stderr, "ERR: Unrecognized data type\n");
+	}
+
 	list_t *l = (list_t *) malloc(sizeof(list_t));
 	l->st_id = id;
 	strcpy(l->st_name,name);
 	l->st_type = type;
+	l->size = dim1 * dim2;
+	l->dim1 = dim1;
+	l->dim2 = dim2;
 	l->offset = data_location();
 
 	l->next = (struct list_t *) symtab;
 	symtab = l;
-	iCounter++;
 	return l;
 }
 
@@ -75,6 +107,10 @@ list_t *lookupID(int id) {
 		}
 	}
 	return 0;
+}
+
+int getOffset(list_t *l, int slot) {
+    return l->offset + slot;
 }
 
 void print_code() {

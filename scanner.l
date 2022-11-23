@@ -35,7 +35,7 @@ ctef	{digit}*"."{digit}+
 "!="	{return NOTOP; }
 "=="	{return EQUOP; }
 "<"	{return LESSTH; }
-"<="	{return LESST_E; }
+"<="	{return LESSTH_E; }
 ">"	{return GREATH; }
 ">="	{return GREATH_E; }
 
@@ -67,7 +67,9 @@ ctef	{digit}*"."{digit}+
 {ctei}	{
 		yylval.ival = atoi(yytext);
 		return CTEI; }
-{ctef}	{ return CTEF; }
+{ctef}	{ 
+		yylval.ival = atof(yytext);
+		return CTEF; }
 
 
 [ \n\t\r\f]+	/* empty */
